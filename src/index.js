@@ -1,11 +1,43 @@
 "use strict";
+const webserver = require("tn-webserver");
 const express = require("express");
-const cors = require("cors");
 const request = require("request");
 const absolutify = require("absolutify");
 const imageDataURI = require("image-data-uri");
 
-let router = express.Router();
+//middleware
+const cors = require("cors"); z;
+
+let app = express();
+app.use(async (req, res, next) => {
+	console.log("__**" + [req.method, req.path].join(" ") + "**__");
+	next();
+});
+
+/**
+ * Settings
+ */
+app.set("json spaces", 2);
+/**
+ * Middleware
+ */
+
+//enable CORS
+app.use(cors());
+app.use(function (req, res, next) {
+	res.header("Access-Control-Allow-Origin", "*");
+	res.header(
+		"Access-Control-Allow-Headers",
+		"Origin, X-Requested-With, Content-Type, Accept"
+	);
+	next();
+});
+
+app.use(function (err, req, res, next) {
+	if (!err) next();
+	console.error(err.stack);
+	res.status(500).send(err.stack);
+});
 
 function getHostName(url) {
 	let nohttp = url.replace("http://", "").replace("https://", "");
@@ -14,7 +46,7 @@ function getHostName(url) {
 	return hostname;
 }
 
-router.use("/", (req, res, next) => {
+app.use("/", (req, res, next) => {
 	res.header("Access-Control-Allow-Origin", "*");
 	next();
 });
@@ -23,8 +55,8 @@ router.use("/", (req, res, next) => {
  * Paths
  */
 
-/* /cors/data/(url) */
-router.use("/data", async (req, res) => {
+/* /data/(url) */
+app.use("/data", async (req, res) => {
 	let url = req.path.substr(1);
 	console.log("URL:", url);
 	if (!url) {
@@ -46,8 +78,8 @@ router.use("/data", async (req, res) => {
 	}
 });
 
-/* /cors/file/(url) */
-router.use("/file", async (req, res) => {
+/* /file/(url) */
+app.use("/file", async (req, res) => {
 	let url = req.path.substr(1);
 	console.log("URL:", url);
 	if (!url) {
@@ -59,8 +91,8 @@ router.use("/file", async (req, res) => {
 	request(url).pipe(res);
 });
 
-// /cors/(url)
-router.use("/", async (req, res) => {
+// /(url)
+app.use("/", async (req, res) => {
 	let url = req.path.substr(1);
 	console.log("URL:", url);
 	if (!url) {
@@ -98,5 +130,4 @@ router.use("/", async (req, res) => {
 		return;
 	}
 });
-
-module.exports = router;
+webserver(app);
